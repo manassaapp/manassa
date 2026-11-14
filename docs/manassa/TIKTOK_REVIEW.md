@@ -90,7 +90,7 @@ Policy) link to TikTok's own pages.
       TikTok profile.
    6. Disconnecting the TikTok channel (data deletion path) and opening `/privacy`.
 7. **Test account**: a private TikTok account (unaudited apps can only post `SELF_ONLY`).
-8. **Source code link (AGPL)**: set `SOURCE_CODE_URL` to your public repository before
+8. **Source code link (AGPL)**: https://github.com/manassaapp/manassa (default in `brand.config.ts`; `SOURCE_CODE_URL` overrides it). The repository must be public before
    other people use the app.
 
 ## 4. Known limits

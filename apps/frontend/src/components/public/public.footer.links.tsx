@@ -8,7 +8,7 @@ import { brand } from '@gitroom/helpers/brand/brand.config';
  */
 export const PublicFooterLinks = async () => {
   const t = await getT();
-  const sourceUrl = process.env[brand.sourceCodeUrlEnv] || brand.upstream.url;
+  const sourceUrl = process.env[brand.sourceCodeUrlEnv] || brand.sourceCodeUrl;
   return (
     <nav
       aria-label={t('legal_links', 'Legal')}

@@ -30,7 +30,7 @@ If you let other people use this modified app over a network (for example
 as a hosted SaaS), you must offer those users the **complete corresponding
 source code of the version you run**, under the AGPL-3.0, for free. In
 practice: publish this repository (with your changes) at a public URL and
-set `SOURCE_CODE_URL` in `.env.manassa`; the app links to it from the
+set `SOURCE_CODE_URL` in `.env.manassa` (current repository: https://github.com/manassaapp/manassa); the app links to it from the
 footer of every public page and the sign-in pages.
 
 ## Third-party assets

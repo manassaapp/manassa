@@ -42,7 +42,7 @@ I have not changed Cloudflare or DNS. When you are ready, do these yourself:
    FRONTEND_URL=https://manassa.space
    NEXT_PUBLIC_BACKEND_URL=https://manassa.space/api
    # delete NOT_SECURED=true once you are on https
-   SOURCE_CODE_URL=https://github.com/<you>/manassa
+   SOURCE_CODE_URL=https://github.com/manassaapp/manassa
    ```
    then rebuild: `docker compose -f docker-compose.manassa.yaml --env-file .env.manassa up -d --build`
    (`NEXT_PUBLIC_*` values are baked into the frontend at build time).
@@ -55,4 +55,4 @@ I have not changed Cloudflare or DNS. When you are ready, do these yourself:
 6. **Social apps**: in each platform's developer portal set the redirect URI to
    `https://manassa.space/integrations/social/<provider>` (e.g. `https://manassa.space/integrations/social/tiktok`).
 7. **AGPL-3.0**: before other people use it, publish this repository (with your changes)
-   and set `SOURCE_CODE_URL`. See [NOTICE.md](../../NOTICE.md).
+   and set `SOURCE_CODE_URL`. Published at https://github.com/manassaapp/manassa (keep it public and up to date). See [NOTICE.md](../../NOTICE.md).

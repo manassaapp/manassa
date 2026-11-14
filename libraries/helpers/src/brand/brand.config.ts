@@ -76,9 +76,10 @@ export const brand = {
   },
   /**
    * Where users can download the source code of THIS modified version
-   * (AGPL-3.0 section 13). Set SOURCE_CODE_URL in the environment to your
-   * public repository before offering the app to other people.
+   * (AGPL-3.0 section 13). SOURCE_CODE_URL in the environment overrides
+   * this default.
    */
+  sourceCodeUrl: 'https://github.com/manassaapp/manassa',
   sourceCodeUrlEnv: 'SOURCE_CODE_URL',
 } as const;
 
