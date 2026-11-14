@@ -32,7 +32,12 @@ I have not changed Cloudflare or DNS. When you are ready, do these yourself:
    `vmaegypt.online` (if it isn't already).
 2. **Cloudflare Tunnel**: create a **new** tunnel (or a new public hostname on a tunnel
    you choose) — do not edit the existing `vmaegypt.online` routes. Route:
-   - `manassa.space` (apex) → `http://127.0.0.1:5300`
+   - `manassa.space` (apex) and `www` → service type **HTTP**, URL `host.docker.internal:5300`.
+     The tunnel used here (`cf-tunnel-2`) runs in Docker, so `localhost` would mean the
+     tunnel container itself (error 502). If cloudflared runs directly on Windows instead,
+     use `localhost:5300`. Not HTTPS: the app speaks plain HTTP behind the tunnel.
+   - Delete any DNS records Cloudflare imported from the registrar (e.g. Namecheap URL
+     forwarding) for `@` and `www` first, or the tunnel hostname can't create its CNAME.
    - optional `www.manassa.space` → redirect to `https://manassa.space` (Cloudflare redirect rule)
    - The homepage, `/privacy`, `/terms` and the app all live on the same host:
      `/` shows the homepage to signed-out visitors and the calendar to signed-in users.
@@ -44,8 +49,8 @@ I have not changed Cloudflare or DNS. When you are ready, do these yourself:
    # delete NOT_SECURED=true once you are on https
    SOURCE_CODE_URL=https://github.com/manassaapp/manassa
    ```
-   then rebuild: `docker compose -f docker-compose.manassa.yaml --env-file .env.manassa up -d --build`
-   (`NEXT_PUBLIC_*` values are baked into the frontend at build time).
+   then restart the app: `docker compose -f docker-compose.manassa.yaml --env-file .env.manassa up -d app`
+   (these URLs are read when the server starts; no rebuild needed).
 4. **Storage**: local uploads work for testing. For production create a **new** R2
    bucket (not `postiz-upload`) with its own API token and set `STORAGE_PROVIDER=cloudflare`
    + the `CLOUDFLARE_*` variables.

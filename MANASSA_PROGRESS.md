@@ -69,6 +69,7 @@ Legend: `[x]` done · `[~]` done with caveats (see notes) · `[ ]` not done
       duration check, preview, processing notice
 - [x] Public homepage `/`, `/privacy`, `/terms` (Arabic + English)
 - [ ] Items only the owner can do: see TIKTOK_REVIEW.md “Still needed”
+- [x] Live at https://manassa.space via Cloudflare tunnel (cf-tunnel-2 → http://host.docker.internal:5300), 2026-11-14
 - [x] Production domain recorded: https://manassa.space (DNS/tunnel not changed)
 
 ## 7. Test & run (details: docs/manassa/TEST_REPORT.md)

@@ -72,3 +72,4 @@ var/docker/test-account.local
 # Manassa local build logs and scratch lists
 var/docker/*.log
 var/docker/*.txt
+var/docker/.env*
