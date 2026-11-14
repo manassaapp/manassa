@@ -1,0 +1,112 @@
+import { Injectable } from '@nestjs/common';
+import { EmailInterface } from '@gitroom/nestjs-libraries/emails/email.interface';
+import { ResendProvider } from '@gitroom/nestjs-libraries/emails/resend.provider';
+import { EmptyProvider } from '@gitroom/nestjs-libraries/emails/empty.provider';
+import { NodeMailerProvider } from '@gitroom/nestjs-libraries/emails/node.mailer.provider';
+import { SesProvider } from '@gitroom/nestjs-libraries/emails/ses.provider';
+import { TemporalService } from 'nestjs-temporal-core';
+import { timer } from '@gitroom/helpers/utils/timer';
+import { randomUUID } from 'crypto';
+import { brandEmailLayout } from '@gitroom/nestjs-libraries/services/brand.email';
+
+@Injectable()
+export class EmailService {
+  emailService: EmailInterface;
+  constructor(private _temporalService: TemporalService) {
+    this.emailService = this.selectProvider(process.env.EMAIL_PROVIDER!);
+    console.log('Email service provider:', this.emailService.name);
+    for (const key of this.emailService.validateEnvKeys) {
+      if (!process.env[key]) {
+        console.error(`Missing environment variable: ${key}`);
+      }
+    }
+  }
+
+  hasProvider() {
+    return !(this.emailService instanceof EmptyProvider);
+  }
+
+  selectProvider(provider: string) {
+    switch (provider) {
+      case 'resend':
+        return new ResendProvider();
+      case 'nodemailer':
+        return new NodeMailerProvider();
+      case 'ses':
+        return new SesProvider();
+      default:
+        return new EmptyProvider();
+    }
+  }
+
+  async sendEmail(
+    to: string,
+    subject: string,
+    html: string,
+    addTo: 'top' | 'bottom',
+    replyTo?: string
+  ) {
+    if (!to || !subject) {
+      return;
+    }
+
+    return this._temporalService.client
+      .getRawClient()
+      ?.workflow.start('sendSingleEmailWorkflow', {
+        taskQueue: 'main',
+        workflowId: `send_email_${randomUUID()}`,
+        args: [{ to, subject, html, replyTo, addTo }],
+      });
+  }
+
+  async sendEmailSync(
+    to: string,
+    subject: string,
+    html: string,
+    replyTo?: string
+  ) {
+    if (to.indexOf('@') === -1) {
+      return;
+    }
+
+    if (!process.env.EMAIL_FROM_ADDRESS || !process.env.EMAIL_FROM_NAME) {
+      console.log(
+        'Email sender information not found in environment variables'
+      );
+      return;
+    }
+
+    const settingsUrl = `${process.env.FRONTEND_URL}/settings`;
+    // Mail clients show an unsubscribe link next to the sender, it opens the
+    // settings where the email notifications can be turned off
+    const headers = process.env.FRONTEND_URL
+      ? { 'List-Unsubscribe': `<${settingsUrl}>` }
+      : undefined;
+
+    const modifiedHtml = brandEmailLayout(subject, html, settingsUrl);
+
+    let lastErr: unknown;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        const sends = await this.emailService.sendEmail(
+          to,
+          subject,
+          modifiedHtml,
+          process.env.EMAIL_FROM_NAME,
+          process.env.EMAIL_FROM_ADDRESS,
+          replyTo,
+          headers
+        );
+        console.log(sends);
+        return;
+      } catch (err) {
+        lastErr = err;
+        console.log(`Email attempt ${attempt + 1}/3 failed:`, err);
+        if (attempt < 2) {
+          await timer(700);
+        }
+      }
+    }
+    console.log(`Email to ${to} failed after 3 attempts:`, lastErr);
+  }
+}

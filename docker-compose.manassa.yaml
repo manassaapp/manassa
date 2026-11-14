@@ -1,0 +1,150 @@
+# Manassa (منصة) - local Docker stack.
+#
+# Completely separate from the VMA Postiz stack in C:\ElDoc\postiz-docker-compose-main:
+#   - own compose project name ("manassa"), so container, volume and network
+#     names are all prefixed "manassa-" / "manassa_"
+#   - no container_name: entries (they are global and would clash)
+#   - own Postgres, Redis, Temporal (+ its own Postgres and Elasticsearch), uploads volume
+#   - own private network; does NOT join VMA's "temporal-network"
+#   - published on 127.0.0.1:5300 only (VMA uses 5000/4007/8085/7233/8080)
+#
+# First run (from this folder, in Git Bash):
+#   bash var/docker/manassa-init-env.sh        # creates .env.manassa with random local secrets
+#   docker compose -f docker-compose.manassa.yaml --env-file .env.manassa up -d --build
+# Then open http://127.0.0.1:5300
+name: manassa
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  app:
+    <<: *restart
+    build:
+      context: .
+      dockerfile: Dockerfile.manassa
+      target: runtime
+    image: manassa-app:local
+    env_file:
+      - .env.manassa
+    environment:
+      DATABASE_URL: postgresql://manassa:${MANASSA_DB_PASSWORD}@postgres:5432/manassa
+      REDIS_URL: redis://redis:6379
+      TEMPORAL_ADDRESS: temporal:7233
+      BACKEND_INTERNAL_URL: http://localhost:3000
+      STORAGE_PROVIDER: local
+      UPLOAD_DIRECTORY: /uploads
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
+      IS_GENERAL: 'true'
+    volumes:
+      - uploads:/uploads
+      - config:/config
+    ports:
+      - '127.0.0.1:${MANASSA_PORT:-5300}:5000'
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      temporal:
+        condition: service_started
+    networks: [manassa]
+
+  postgres:
+    <<: *restart
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: manassa
+      POSTGRES_PASSWORD: ${MANASSA_DB_PASSWORD}
+      POSTGRES_DB: manassa
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U manassa -d manassa
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [manassa]
+
+  redis:
+    <<: *restart
+    image: redis:7.2
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: redis-cli ping
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [manassa]
+
+  temporal-db:
+    <<: *restart
+    image: postgres:16
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: ${MANASSA_TEMPORAL_DB_PASSWORD}
+    volumes:
+      - temporal-db:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U temporal
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [manassa]
+
+  # Temporal visibility store. Without it Temporal allows only 3 custom
+  # "Text" search attributes and the backend fails to start (Postiz needs more).
+  temporal-es:
+    <<: *restart
+    image: elasticsearch:7.17.27
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+      - xpack.security.enabled=false
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=512mb
+      - cluster.routing.allocation.disk.watermark.high=256mb
+      - cluster.routing.allocation.disk.watermark.flood_stage=128mb
+    volumes:
+      - temporal-es:/usr/share/elasticsearch/data
+    healthcheck:
+      test: curl -fs http://localhost:9200/_cluster/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    networks: [manassa]
+
+  temporal:
+    <<: *restart
+    image: temporalio/auto-setup:1.28.1
+    depends_on:
+      temporal-db:
+        condition: service_healthy
+      temporal-es:
+        condition: service_healthy
+    environment:
+      DB: postgres12
+      DB_PORT: 5432
+      POSTGRES_USER: temporal
+      POSTGRES_PWD: ${MANASSA_TEMPORAL_DB_PASSWORD}
+      POSTGRES_SEEDS: temporal-db
+      DYNAMIC_CONFIG_FILE_PATH: config/dynamicconfig/development-sql.yaml
+      ENABLE_ES: 'true'
+      ES_SEEDS: temporal-es
+      ES_VERSION: v7
+      TEMPORAL_NAMESPACE: default
+    volumes:
+      - ./dynamicconfig:/etc/temporal/config/dynamicconfig
+    networks: [manassa]
+
+volumes:
+  temporal-es:
+  postgres:
+  redis:
+  temporal-db:
+  uploads:
+  config:
+
+networks:
+  manassa:

@@ -1,0 +1,107 @@
+'use client';
+
+import { FC, forwardRef, useCallback, useState } from 'react';
+import clsx from 'clsx';
+import { useFormContext, useWatch } from 'react-hook-form';
+export const Checkbox = forwardRef<
+  null,
+  {
+    checked?: boolean;
+    disableForm?: boolean;
+    name?: string;
+    className?: string;
+    label?: string;
+    onChange?: (event: {
+      target: {
+        name?: string;
+        value: boolean;
+      };
+    }) => void;
+    variant?: 'default' | 'hollow';
+    disabled?: boolean;
+    /** Shown as a tooltip and to screen readers, e.g. why it is disabled. */
+    title?: string;
+  }
+>((props, ref: any) => {
+  const { checked, className, label, disableForm, variant, disabled, title } =
+    props;
+  const form = useFormContext();
+  const register = disableForm ? {} : form.register(props.name!);
+  const watch = disableForm ? false : form.watch(props.name!);
+  const val = watch || checked;
+
+  const changeStatus = useCallback(() => {
+    if (disabled) {
+      return;
+    }
+    props?.onChange?.({
+      target: {
+        name: props.name!,
+        value: !val,
+      },
+    });
+    if (!disableForm) {
+      // @ts-ignore
+      register?.onChange?.({
+        target: {
+          name: props.name!,
+          value: !val,
+        },
+      });
+    }
+  }, [val, disabled]);
+  return (
+    <div
+      className={clsx('flex gap-[10px]', disabled && 'opacity-50 cursor-not-allowed')}
+      title={title}
+    >
+      <div
+        ref={ref}
+        {...disableForm ? {} : form.register(props.name!)}
+        onClick={changeStatus}
+        role="checkbox"
+        aria-checked={!!val}
+        aria-disabled={disabled || undefined}
+        aria-label={label}
+        tabIndex={disabled ? -1 : 0}
+        onKeyDown={(e) => {
+          if (e.key === ' ' || e.key === 'Enter') {
+            e.preventDefault();
+            changeStatus();
+          }
+        }}
+        className={clsx(
+          disabled ? 'cursor-not-allowed' : 'cursor-pointer',
+          'rounded-[4px] select-none w-[24px] h-[24px] justify-center items-center flex text-white',
+          variant === 'default' || !variant
+            ? 'bg-forth'
+            : 'border-customColor1 border-2 bg-customColor2',
+          className
+        )}
+      >
+        {val && (
+          <div>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="20"
+              height="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>
+          </div>
+        )}
+      </div>
+      {!!label && (
+        <div onClick={changeStatus} className={disabled ? '' : 'cursor-pointer'}>
+          {label}
+        </div>
+      )}
+    </div>
+  );
+});

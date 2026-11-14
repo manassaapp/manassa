@@ -1,0 +1,226 @@
+// =====================================================================
+// Manassa (منصة) design system layer.
+// Loaded after colors.scss: it re-maps the existing design tokens to the
+// brand palette and adds typography, focus, RTL and component polish.
+// Brand colours are defined in libraries/helpers/src/brand/brand.config.ts
+// =====================================================================
+
+:root {
+  --brand-primary: #6a2bf0;
+  --brand-primary-hover: #5B21D6;
+  --brand-primary-soft: rgba(106, 43, 240, 0.14);
+  --brand-accent: #a66bff;
+  --brand-focus: #A78BFA;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --ease: cubic-bezier(0.2, 0.7, 0.2, 1);
+
+  // Third-party widgets that read their own variables
+  --copilot-kit-primary-color: var(--brand-primary);
+
+  .dark {
+    --new-back-drop: #05030d;
+    --new-settings: #1b1630;
+    --new-border: #241d3d;
+    --new-bgColor: #0b0817;
+    --new-bgColorInner: #120e22;
+    --new-sep: #3a3159;
+    --new-bgLineColor: #1a1530;
+    --new-textItemBlur: #a39bbe; // 7.2:1 on --new-bgColorInner
+    --new-blockSeparator: #1d1834;
+    --new-btn-simple: #211b3a;
+    --new-btn-primary: var(--brand-primary);
+    --new-box-hover: #191430;
+    --new-table-border: #2a2246;
+    --new-table-header: #161129;
+    --new-table-text: #a39bbe;
+    --new-table-text-focused: #C4B5FD;
+    --new-big-strips: #100c1f;
+    --new-col-color: #1c1733;
+    --new-menu-dots: #8a82a6;
+    --popup-color: rgba(8, 4, 24, 0.6);
+    --color-primary: #0b0817;
+    --color-forth: var(--brand-primary);
+    --color-seventh: #7C3AED;
+    --color-custom4: #8B5CF6;
+    --color-custom7: #8B5CF6;
+  }
+
+  .light {
+    --new-back-drop: #1B0B4B;
+    --new-settings: #f1eef9;
+    --new-sep: #dcd6ea;
+    --new-border: #e8e3f3;
+    --new-bgColor: #f5f3fb;
+    --new-bgColorInner: #ffffff;
+    --new-bgLineColor: #ebe7f5;
+    --new-textItemFocused: #5B21D6;
+    --new-textItemBlur: #5e5873; // 6.7:1 on white
+    --new-boxFocused: #EFE9FF;
+    --new-btn-simple: #f1eef9;
+    --new-btn-primary: var(--brand-primary);
+    --new-box-hover: #f7f5fc;
+    --new-table-border: #e8e3f3;
+    --new-table-header: #f8f6fc;
+    --new-table-text: #5e5873;
+    --new-table-text-focused: #5B21D6;
+    --new-big-strips: #f8f6fc;
+    --new-col-color: #f2eff9;
+    --popup-color: rgba(25, 9, 75, 0.22);
+    --color-forth: var(--brand-primary);
+    --color-seventh: #7C3AED;
+    --color-custom4: #8B5CF6;
+    --color-custom7: #8B5CF6;
+  }
+}
+
+// ---------------------------------------------------------------------
+// Typography
+// ---------------------------------------------------------------------
+html {
+  -webkit-text-size-adjust: 100%;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  font-family: var(--font-brand), Tahoma, 'Segoe UI', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+// Arabic script needs more vertical room than Latin.
+html[lang^='ar'] body {
+  line-height: 1.6;
+}
+html[lang^='ar'] :is(h1, h2, h3, h4) {
+  line-height: 1.35;
+  letter-spacing: 0 !important;
+}
+// Letter-spacing breaks the joining of Arabic letters.
+html[dir='rtl'] [class*='tracking-'] {
+  letter-spacing: 0 !important;
+}
+
+// ---------------------------------------------------------------------
+// Keyboard focus (global.scss removes outlines; restore them for
+// keyboard users only).
+// ---------------------------------------------------------------------
+body *:focus-visible {
+  outline: 2px solid var(--brand-focus) !important;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+body .ProseMirror:focus-visible,
+body [contenteditable='true']:focus-visible,
+body textarea:focus-visible,
+body input:focus-visible {
+  outline-offset: 0;
+}
+
+.skip-link {
+  position: absolute;
+  inset-inline-start: 12px;
+  top: -60px;
+  z-index: 10000;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--brand-primary);
+  color: #fff;
+  font-weight: 600;
+  transition: top 0.15s var(--ease);
+  &:focus {
+    top: 12px;
+  }
+}
+
+// ---------------------------------------------------------------------
+// Interaction polish
+// ---------------------------------------------------------------------
+button,
+[role='button'],
+a {
+  transition: background-color 0.15s var(--ease), color 0.15s var(--ease),
+    border-color 0.15s var(--ease), box-shadow 0.15s var(--ease),
+    opacity 0.15s var(--ease);
+}
+
+.bg-btnPrimary:not(:disabled):hover,
+.bg-forth:not(:disabled):hover {
+  background-color: var(--brand-primary-hover) !important;
+}
+
+::selection {
+  background: var(--brand-primary-soft);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+// ---------------------------------------------------------------------
+// Right-to-left
+// ---------------------------------------------------------------------
+// User-written content (posts, comments, previews, editors) picks its own
+// direction per paragraph, so Arabic, English and mixed posts all read
+// correctly in either interface language. Content is never modified.
+.ProseMirror,
+.ProseMirror p,
+[contenteditable='true'],
+.preview p,
+.editor p,
+textarea {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
+// Things that are always left-to-right: URLs, e-mails, code, API keys,
+// numbers in inputs, hashtags/mentions inside LTR chips.
+html[dir='rtl'] {
+  input[type='url'],
+  input[type='email'],
+  input[type='number'],
+  input[type='password'],
+  code,
+  pre,
+  kbd,
+  .ltr {
+    direction: ltr;
+    unicode-bidi: isolate;
+  }
+  input[type='url'],
+  input[type='email'],
+  input[type='password'] {
+    text-align: end;
+  }
+
+  // Directional icons (arrows, chevrons) point the other way in RTL.
+  .flip-rtl,
+  [data-flip-rtl] {
+    transform: scaleX(-1);
+  }
+
+  // react-tooltip and Uppy add physical offsets; mirror them.
+  .uppy-Dashboard-close {
+    right: auto;
+    left: -33px;
+  }
+
+  // Charts (chart.js canvases) keep their LTR time axis.
+  canvas {
+    direction: ltr;
+  }
+}
+
+// The calendar time grid and week view: keep time labels aligned to the
+// start edge in both directions.
+html[dir='rtl'] .fc,
+html[dir='rtl'] .calendar-time {
+  direction: rtl;
+}

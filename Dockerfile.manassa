@@ -1,0 +1,71 @@
+# syntax=docker/dockerfile:1.7
+# Manassa (منصة) production image. Built from this repository's source
+# (a modified Postiz, AGPL-3.0). Designed for slow connections:
+#  - BuildKit cache mounts keep the pnpm store and apt cache between builds
+#  - dependencies are fetched in their own layer from the lockfile only,
+#    so editing source code never re-downloads packages
+#  - pnpm retries failed downloads with long timeouts
+
+ARG NODE_IMAGE=node:22.23.4-bookworm-slim
+
+FROM ${NODE_IMAGE} AS base
+ENV PNPM_HOME=/pnpm \
+    PATH=/pnpm:$PATH \
+    PNPM_STORE_DIR=/pnpm/store \
+    npm_config_fetch_retries=8 \
+    npm_config_fetch_retry_mintimeout=20000 \
+    npm_config_fetch_retry_maxtimeout=180000 \
+    npm_config_fetch_timeout=600000 \
+    npm_config_child_concurrency=2 \
+    npm_config_network_concurrency=4
+RUN --mount=type=cache,id=manassa-apt,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,id=manassa-apt-lists,target=/var/lib/apt/lists,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+ && apt-get update \
+ && apt-get -o Acquire::Retries=8 install -y --no-install-recommends \
+      g++ make python3-pip bash nginx openssl ca-certificates
+RUN --mount=type=cache,id=manassa-npm,target=/root/.npm \
+    npm --no-update-notifier --no-fund --global install pnpm@10.6.1 pm2
+RUN pnpm config set store-dir /pnpm/store --global \
+ && pnpm config set fetch-retries 8 --global \
+ && pnpm config set fetch-timeout 600000 --global \
+ && pnpm config set network-concurrency 4 --global \
+ && pnpm config set child-concurrency 2 --global
+WORKDIR /app
+
+# ---- 1. download every package once (depends only on the lockfile) ----
+FROM base AS fetch
+COPY pnpm-lock.yaml pnpm-workspace.yaml .npmrc package.json ./
+RUN --mount=type=cache,id=manassa-pnpm,target=/pnpm/store \
+    pnpm fetch
+
+# ---- 2. install from the warm store (offline-first) ----
+FROM fetch AS deps
+COPY . .
+RUN --mount=type=cache,id=manassa-pnpm,target=/pnpm/store \
+    --mount=type=cache,id=manassa-prisma,target=/root/.cache \
+    pnpm install --frozen-lockfile --prefer-offline
+
+# ---- 3. quality checks (run with: docker build --target check) ----
+FROM deps AS check
+ARG CHECKS="lint types test"
+RUN mkdir -p /reports && echo "checks: ${CHECKS}" > /reports/summary.txt
+CMD ["bash", "/app/var/docker/manassa-checks.sh"]
+
+# ---- 4. production build ----
+FROM deps AS build
+ARG NEXT_PUBLIC_VERSION=manassa
+ENV NEXT_PUBLIC_VERSION=$NEXT_PUBLIC_VERSION
+# Build the three apps one after another with a memory cap, so the build
+# does not starve the other containers running on this machine.
+RUN NODE_OPTIONS="--max-old-space-size=3072" pnpm run build
+
+# ---- 5. runtime ----
+FROM build AS runtime
+RUN addgroup --system www \
+ && adduser --system --ingroup www --home /www --shell /usr/sbin/nologin www \
+ && mkdir -p /www /uploads /config \
+ && chown -R www:www /www /var/lib/nginx
+COPY var/docker/nginx.conf /etc/nginx/nginx.conf
+EXPOSE 5000
+CMD ["sh", "-c", "nginx && pnpm run pm2"]

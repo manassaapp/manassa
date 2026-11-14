@@ -1,0 +1,167 @@
+import { SentryComponent } from '@gitroom/frontend/components/layout/sentry.component';
+
+export const dynamic = 'force-dynamic';
+import '../global.scss';
+import 'react-tooltip/dist/react-tooltip.css';
+import '@copilotkit/react-ui/styles.css';
+import LayoutContext from '@gitroom/frontend/components/layout/layout.context';
+import { ReactNode } from 'react';
+import { brandFont } from '@gitroom/frontend/fonts/brand.font';
+import PlausibleProvider from 'next-plausible';
+import clsx from 'clsx';
+import { VariableContextComponent } from '@gitroom/react/helpers/variable.context';
+import { Fragment } from 'react';
+import UtmSaver from '@gitroom/helpers/utils/utm.saver';
+import { DubAnalytics } from '@gitroom/frontend/components/layout/dubAnalytics';
+import { FacebookComponent } from '@gitroom/frontend/components/layout/facebook.component';
+import { GoogleTagManagerComponent } from '@gitroom/frontend/components/layout/gtm.component';
+import { cookies } from 'next/headers';
+import {
+  cookieName,
+  defaultLng,
+  isRtl,
+} from '@gitroom/react/translation/i18n.config';
+import { Metadata, Viewport } from 'next';
+import {
+  brand,
+  brandName,
+  brandTagline,
+} from '@gitroom/helpers/brand/brand.config';
+import { HtmlComponent } from '@gitroom/frontend/components/layout/html.component';
+import Script from 'next/script';
+import { ChangeDirClient } from '@gitroom/frontend/components/new-layout/change.dir.client';
+
+export async function generateMetadata(): Promise<Metadata> {
+  const cookieStore = await cookies();
+  const language = cookieStore.get(cookieName)?.value || defaultLng;
+  const name = brandName(language);
+  const description = brandTagline(language);
+  const base = process.env.FRONTEND_URL;
+  return {
+    ...(base ? { metadataBase: new URL(base) } : {}),
+    applicationName: name,
+    title: { default: name, template: `%s` },
+    description,
+    manifest: '/manifest.webmanifest',
+    icons: {
+      icon: [
+        { url: '/favicon.ico', sizes: 'any' },
+        { url: brand.assets.logo, type: 'image/svg+xml' },
+      ],
+      apple: brand.assets.appleTouchIcon,
+    },
+    openGraph: {
+      type: 'website',
+      siteName: name,
+      title: name,
+      description,
+      locale: language.startsWith('ar') ? 'ar_EG' : 'en_US',
+      images: [{ url: brand.assets.socialPreview, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: name,
+      description,
+      images: [brand.assets.socialPreview],
+    },
+  };
+}
+
+export const viewport: Viewport = {
+  themeColor: brand.colors.ink,
+};
+
+export default async function AppLayout({ children }: { children: ReactNode }) {
+  const cookieStore = await cookies();
+  const language = cookieStore.get(cookieName)?.value || defaultLng;
+  const dir = isRtl(language) ? 'rtl' : 'ltr';
+  const Plausible = !!process.env.STRIPE_PUBLISHABLE_KEY
+    ? PlausibleProvider
+    : Fragment;
+  return (
+    <html lang={language} dir={dir} suppressHydrationWarning>
+      <head>
+        {!!process.env.DATAFAST_WEBSITE_ID && (
+          <Script
+            data-website-id={process.env.DATAFAST_WEBSITE_ID}
+            data-domain={process.env.DATAFAST_DOMAIN || ''}
+            src="https://datafa.st/js/script.js"
+            strategy="afterInteractive"
+          />
+        )}
+      </head>
+      <ChangeDirClient />
+      <body
+        className={clsx(
+          brandFont.className,
+          brandFont.variable,
+          'dark text-primary !bg-primary'
+        )}
+      >
+        <VariableContextComponent
+          storageProvider={
+            process.env.STORAGE_PROVIDER! as 'local' | 'cloudflare'
+          }
+          environment={process.env.NODE_ENV!}
+          backendUrl={process.env.NEXT_PUBLIC_BACKEND_URL!}
+          plontoKey={process.env.NEXT_PUBLIC_POLOTNO!}
+          stripeClient={process.env.STRIPE_PUBLISHABLE_KEY!}
+          isChatBase={!!process.env.CHATBASE_TOKEN}
+          billingEnabled={!!process.env.STRIPE_PUBLISHABLE_KEY}
+          discordUrl={process.env.NEXT_PUBLIC_DISCORD_SUPPORT!}
+          frontEndUrl={process.env.FRONTEND_URL!}
+          isGeneral={!!process.env.IS_GENERAL}
+          genericOauth={!!process.env.POSTIZ_GENERIC_OAUTH}
+          oauthLogoUrl={process.env.NEXT_PUBLIC_POSTIZ_OAUTH_LOGO_URL!}
+          oauthDisplayName={process.env.NEXT_PUBLIC_POSTIZ_OAUTH_DISPLAY_NAME!}
+          uploadDirectory={process.env.NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY!}
+          cloudflareUrl={process.env.CLOUDFLARE_BUCKET_URL || ''}
+          mainUrl={process.env.MAIN_URL || ''}
+          mcpUrl={process.env.MCP_URL}
+          dub={!!process.env.STRIPE_PUBLISHABLE_KEY}
+          facebookPixel={process.env.NEXT_PUBLIC_FACEBOOK_PIXEL!}
+          telegramBotName={process.env.TELEGRAM_BOT_NAME!}
+          neynarClientId={process.env.NEYNAR_CLIENT_ID!}
+          appleClientId={process.env.APPLE_CLIENT_ID!}
+          isSecured={!process.env.NOT_SECURED}
+          disableImageCompression={!!process.env.DISABLE_IMAGE_COMPRESSION}
+          disableXAnalytics={!!process.env.DISABLE_X_ANALYTICS}
+          sentryDsn={process.env.NEXT_PUBLIC_SENTRY_DSN!}
+          extensionId={process.env.EXTENSION_ID || ''}
+          googleAdsId={process.env.NEXT_PUBLIC_GTM_ID}
+          googleAdsTrialTracking={process.env.NEXT_PUBLIC_TRACKING_TRIAL}
+          language={language}
+          recaptchaSiteKey={process.env.RECAPTCHA_SITE_KEY || ''}
+          mediaProcessing={
+            process.env.STORAGE_PROVIDER === 'cloudflare' &&
+            !!process.env.RUNPOD_API_KEY &&
+            !!process.env.RUNPOD_ENDPOINT_ID
+          }
+          transloadit={
+            process.env.TRANSLOADIT_AUTH && process.env.TRANSLOADIT_TEMPLATE
+              ? [
+                  process.env.TRANSLOADIT_AUTH!,
+                  process.env.TRANSLOADIT_TEMPLATE!,
+                ]
+              : []
+          }
+        >
+          <SentryComponent>
+            <HtmlComponent />
+            <DubAnalytics />
+            <FacebookComponent />
+            <GoogleTagManagerComponent gtmId={process.env.NEXT_PUBLIC_GTM_ID} />
+            <Plausible
+              domain={process.env.PLAUSIBLE_DOMAIN || ''}
+            >
+              <LayoutContext>
+                <UtmSaver />
+                {children}
+              </LayoutContext>
+            </Plausible>
+          </SentryComponent>
+        </VariableContextComponent>
+      </body>
+    </html>
+  );
+}
