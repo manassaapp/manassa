@@ -23,8 +23,6 @@ import {
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useDubClickId } from '@gitroom/frontend/components/layout/dubAnalytics';
-import { PlatformIcon } from '@gitroom/frontend/components/ui/platform.icon.component';
-import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import useCookie from 'react-use-cookie';
 import { LogoutComponent } from '@gitroom/frontend/components/layout/logout.component';
 import { DeveloperIconComponent } from '@gitroom/frontend/components/developer/developer.icon.component';
@@ -57,7 +55,6 @@ export const FirstBillingComponent = () => {
   const [period, setPeriod] = useState('MONTHLY');
   const fetch = useFetch();
   const { mutate } = useSWRConfig();
-  const modals = useModals();
   const t = useT();
   const [datafast_visitor_id] = useCookie('datafast_visitor_id', '');
   const [datafast_session_id] = useCookie('datafast_session_id', '');
@@ -87,21 +84,6 @@ export const FirstBillingComponent = () => {
       })
     ).json();
   }, [tier, period]);
-
-  const showYouTube = () => {
-    modals.openModal({
-      title: 'Grow Fast With {{brand}} (Play the video)',
-      children: (
-        <iframe
-          className="h-full aspect-video min-w-[800px]"
-          src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
-          title="{{brand}} Tutorial"
-          allow="autoplay"
-          allowFullScreen
-        />
-      ),
-    });
-  };
 
   const { data, isLoading } = useSWR(
     `/billing-${tier}-${period}`,
@@ -139,13 +121,6 @@ export const FirstBillingComponent = () => {
             'billing_postiz_grow_social',
             '{{brand}} To Grow Their Social Presence'
           )}
-        </div>
-
-        <div className="flex" onClick={showYouTube}>
-          <div className="tablet:mb-[32px] cursor-pointer mt-[32px] flex gap-[10px] items-center underline hover:font-[700]">
-            <PlatformIcon identifier="youtube" size={20} />
-            <div>{t('see_the_power_click_here', 'Watch how it works (click here)')}</div>
-          </div>
         </div>
 
         {!!user?.allowTrial && (
