@@ -215,6 +215,14 @@ const TikTokSettings: FC<{
     }
   }, [isUploadMode]);
 
+  // The music field is shown for photos only, but the shared DTO requires a
+  // value for every post: default it to "no" so video posts can be scheduled.
+  useEffect(() => {
+    if (!getValues('autoAddMusic')) {
+      setValue('autoAddMusic', 'no', { shouldValidate: true });
+    }
+  }, [autoAddMusic]);
+
   // Interactions the creator turned off in the TikTok app stay off.
   useEffect(() => {
     if (!creator?.canPost) {
