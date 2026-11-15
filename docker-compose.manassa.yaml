@@ -32,7 +32,7 @@ services:
       REDIS_URL: redis://redis:6379
       TEMPORAL_ADDRESS: temporal:7233
       BACKEND_INTERNAL_URL: http://localhost:3000
-      STORAGE_PROVIDER: local
+      STORAGE_PROVIDER: ${STORAGE_PROVIDER:-local}
       UPLOAD_DIRECTORY: /uploads
       NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
       IS_GENERAL: 'true'
